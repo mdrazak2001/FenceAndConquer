@@ -1,4 +1,3 @@
-import random
 import numpy as np
 
 '''
@@ -9,12 +8,45 @@ import numpy as np
 '''
 
 
+def square_completed(corners, B):
+    def get_cells_between_coords(corner1, corner2, corner3, corner4, Board):
+        cells = []
+        initial_corner = corner1.copy()
+        while corner1 != corner2:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[0] += 1
+        while corner1 != corner3:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[1] += 1
+        while corner1 != corner4:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[0] -= 1
+        while corner1 != initial_corner:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[1] -= 1
+        return cells
+
+    def get_perimeter_cells(Corners, Board):
+        Corners.sort(key=lambda corner: (corner[0], corner[1]))
+        a, b, c, d = Corners[0], Corners[1], Corners[2], Corners[3]
+        cells = get_cells_between_coords(a, c, d, b, Board)
+        return cells
+
+    perimeter_cells = get_perimeter_cells(corners, B)
+    if perimeter_cells.count(0):
+        return False
+    return True
+
+
+def distance(x, y, target_x, target_y):
+    return abs(x - target_x) + abs(y - target_y)
+
+
 class player:
     def __init__(self):
         self.enemy_pos = []
-        self.visited_vertex_cells = set()
         self.visited_cells = set()
-        self.initial_corner = []
+        self.initial_corners = dict()
 
     def get_enemy_pos(self, B):
         B = np.array(B)
@@ -25,61 +57,74 @@ class player:
                     return [ix, iy]
         return self.enemy_pos[-1]
 
-    def distance(self, x, y, target_x, target_y):
-        return abs(x - target_x) + abs(y - target_y)
-
     def square_capture(self, x, y, targets, B):
-
-        if (x, y) in self.visited_vertex_cells:
-            print("Square Done")
-            self.visited_vertex_cells = set()
-            return -1
-        self.visited_vertex_cells.add((x, y))
+        targets.sort(key=lambda corner: (corner[0], corner[1]))
         shortest_dist = 100
         target = targets[0]
         corners = 0
         for tx, ty in targets:
             if B[tx][ty] == 1:
                 corners += 1
-
-        if corners == 1:
-            self.initial_corner = [x, y]
-
+        if corners == 1 and [x, y] in targets:
+            if str(targets) not in self.initial_corners:
+                self.initial_corners[str(targets)] = [x, y]
+        target_conflicts = []
         if corners == 4:
-            target = self.initial_corner
+            target = self.initial_corners[str(targets)]
+            target_conflicts = [target]
         else:
+            best_targets = []
             for tx, ty in targets:
-                temp_dist = self.distance(x, y, tx, ty)
-                if B[tx][ty] != 1 and temp_dist < shortest_dist:
+                temp_dist = distance(x, y, tx, ty)
+                if B[tx][ty] != 1 and temp_dist <= shortest_dist:
                     shortest_dist = temp_dist
                     target = [tx, ty]
+                    best_targets.append([target, shortest_dist])
+            best_targets = [i for i in best_targets if i[1] == shortest_dist]
+            for best_target in best_targets:
+                target_conflicts.append(best_target[0])
+            print(shortest_dist, best_targets)
 
-        all_dirs = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]
-        shortest_dist = 100
-        move = (0, 1)
-        for new_x, new_y in all_dirs:
-            if (0 <= new_x < 30) and (0 <= new_y < 30):
-                new_dist = self.distance(new_x, new_y, target[0], target[1])
-                if new_dist < shortest_dist:
-                    shortest_dist = new_dist
-                    if new_x == x + 1:
-                        move = (1, 0)
-                    elif new_x == x - 1:
-                        move = (-1, 0)
-                    elif new_y == y + 1:
-                        move = (0, 1)
-                    else:
-                        move = (0, -1)
-        return move
+        def get_dirs(cur_x, cur_y, Target_conflicts):
+            all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
+            Shortest_dist = 100
+            move = (0, 1)
+            move_cell = []
+            for TARGET in Target_conflicts:
+                for new_x, new_y in all_dirs:
+                    try:
+                        if (0 <= new_x < 30) and (0 <= new_y < 30):
+                            new_dist = distance(new_x, new_y, TARGET[0], TARGET[1])
+                            if new_dist < Shortest_dist:
+                                Shortest_dist = new_dist
+                                if new_x == cur_x + 1:
+                                    move = (1, 0)
+                                    move_cell.append([move, B[cur_x + 1][cur_y], Shortest_dist])
+                                elif new_x == cur_x - 1:
+                                    move = (-1, 0)
+                                    move_cell.append([move, B[cur_x - 1][cur_y], Shortest_dist])
+                                elif new_y == cur_y + 1:
+                                    move = (0, 1)
+                                    move_cell.append([move, B[cur_x][cur_y + 1], Shortest_dist])
+                                elif new_y == cur_y - 1:
+                                    move = (0, -1)
+                                    move_cell.append([move, B[cur_x][cur_y - 1], Shortest_dist])
+                    except Exception as e:
+                        print(e)
+                        continue
+            move_cell.sort(key=lambda corner: (corner[1], corner[2]))
+            return move_cell[0][0]
+
+        return get_dirs(x, y, target_conflicts)
 
     def move(self, B, N, cur_x, cur_y):
         enemy_head = self.get_enemy_pos(B)
-        # print(enemy_head, [cur_x, cur_y])
-        # print(self.distance(cur_x, cur_y, 0, 0))
-        print(cur_x, cur_y)
-        move = self.square_capture(cur_x, cur_y, [[0, 0], [5, 0], [5, 5], [0, 5]], B)
-        if move == -1:
-            move2 = self.square_capture(cur_x, cur_y, [[6, 0], [11, 0], [11, 5], [6, 5]], B)
-            return move2
+        print(enemy_head, [cur_x, cur_y])
+        move = 1, 0
+        if not square_completed([[0, 0], [5, 0], [5, 5], [0, 5]], B):
+            move = self.square_capture(cur_x, cur_y, [[0, 0], [5, 0], [5, 5], [0, 5]], B)
+        elif not square_completed([[6, 0], [11, 0], [11, 5], [6, 5]], B):
+            move = self.square_capture(cur_x, cur_y, [[6, 0], [11, 0], [11, 5], [6, 5]], B)
+        elif not square_completed([[12, 0], [17, 0], [17, 5], [12, 5]], B):
+            move = self.square_capture(cur_x, cur_y, [[12, 0], [17, 0], [17, 5], [12, 5]], B)
         return move
-        # return self.square_capture(cur_x, cur_y, [[0, 23], [6, 23], [6, 29], [0, 29]], B)

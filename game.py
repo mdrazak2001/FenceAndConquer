@@ -60,9 +60,11 @@ MAXSTEPS = N*N*3+N
 # Assumption: The bot named Player1 makes the first move
 # Positions (X,Y) of the bots. Hackathon participants may change it to suitable values to test their codes.  
 # Position of the first bot (Player1). The bot can be anywhere on the board.
-Bot1_X, Bot1_Y = random.randint(0,N-1), random.randint(0,N-1) # Position of the first bot (Player1):  
+Bot1_X, Bot1_Y = random.randint(0,N-1), random.randint(0,N-1) # Position of the first bot (Player1):
+# Bot1_X, Bot1_Y = 5, 2
 # Position of the second bot (Player2). The bot can be anywhere on the board.
 Bot2_X, Bot2_Y = random.randint(0,N-1), random.randint(0,N-1) # Position of the second bot (Player2): Hackathon participants may change it to suitable values to test their codes 
+# Bot2_X, Bot2_Y = 20, 0
 # The bots must be at different locations on the board.
 while Bot1_X == Bot2_X and Bot1_Y == Bot2_Y:
     Bot2_X, Bot2_Y = random.randint(0,N-1), random.randint(0,N-1)
