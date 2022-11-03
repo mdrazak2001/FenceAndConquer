@@ -8,7 +8,7 @@ import numpy as np
 '''
 
 
-def square_completed(corners, B):
+def perimeter_covered(corners, B):
     def get_cells_between_coords(corner1, corner2, corner3, corner4, Board):
         cells = []
         initial_corner = corner1.copy()
@@ -53,7 +53,7 @@ class player:
         for ix, iy in np.ndindex(B.shape):
             if B[ix, iy] == 2:
                 if [ix, iy] not in self.enemy_pos:
-                    self.enemy_pos.append((ix, iy))
+                    self.enemy_pos.append([ix, iy])
                     return [ix, iy]
         return self.enemy_pos[-1]
 
@@ -83,7 +83,7 @@ class player:
             best_targets = [i for i in best_targets if i[1] == shortest_dist]
             for best_target in best_targets:
                 target_conflicts.append(best_target[0])
-            print(shortest_dist, best_targets)
+            # print(shortest_dist, best_targets)
 
         def get_dirs(cur_x, cur_y, Target_conflicts):
             all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
@@ -117,14 +117,45 @@ class player:
 
         return get_dirs(x, y, target_conflicts)
 
+    def wher2go(self, corners, cur_x, cur_y, Board, enemy_x, enemy_y):
+        index = 0
+        return corners[index]
+
+    def find_squares(self, Board):
+        corners = []
+        a, b, c, d = [0, 0], [5, 0], [5, 5], [0, 5]
+        # print(square_completed([a, b, c, d], Board))
+        for i in range(30):
+            try:
+                a_ = a.copy()
+                b_ = b.copy()
+                c_ = c.copy()
+                d_ = d.copy()
+                for j in range(30):
+                    if not perimeter_covered([a_, b_, c_, d_], Board):
+                        corners.append([a_.copy(), b_.copy(), c_.copy(), d_.copy()])
+                    a_[0] += 1
+                    b_[0] += 1
+                    c_[0] += 1
+                    d_[0] += 1
+                a[1] += 1
+                b[1] += 1
+                c[1] += 1
+                d[1] += 1
+            except:
+                continue
+        # print('corners = ', corners)
+        return corners
+
     def move(self, B, N, cur_x, cur_y):
         enemy_head = self.get_enemy_pos(B)
+        self.find_squares(B)
         print(enemy_head, [cur_x, cur_y])
         move = 1, 0
-        if not square_completed([[0, 0], [5, 0], [5, 5], [0, 5]], B):
+        if not perimeter_covered([[0, 0], [5, 0], [5, 5], [0, 5]], B):
             move = self.square_capture(cur_x, cur_y, [[0, 0], [5, 0], [5, 5], [0, 5]], B)
-        elif not square_completed([[6, 0], [11, 0], [11, 5], [6, 5]], B):
+        elif not perimeter_covered([[6, 0], [11, 0], [11, 5], [6, 5]], B):
             move = self.square_capture(cur_x, cur_y, [[6, 0], [11, 0], [11, 5], [6, 5]], B)
-        elif not square_completed([[12, 0], [17, 0], [17, 5], [12, 5]], B):
+        elif not perimeter_covered([[12, 0], [17, 0], [17, 5], [12, 5]], B):
             move = self.square_capture(cur_x, cur_y, [[12, 0], [17, 0], [17, 5], [12, 5]], B)
         return move
