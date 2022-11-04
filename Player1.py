@@ -1,3 +1,6 @@
+from collections import defaultdict
+from itertools import product
+
 import numpy as np
 
 '''
@@ -117,9 +120,18 @@ class player:
 
         return get_dirs(x, y, target_conflicts)
 
-    def wher2go(self, corners, cur_x, cur_y, Board, enemy_x, enemy_y):
-        index = 0
-        return corners[index]
+    def rate_squares(self, corners, cur_x, cur_y, Board, enemy_x, enemy_y):
+        rating = defaultdict(int)
+        alpha, beta, gamma = 1, 1, 1
+        for corner in corners:
+            lu, ld, rd, ru = corner
+            empty = sum(1 for i, j in product(range(lu, ru + 1), range(ld, rd + 1)) if Board[i][j] == 0)
+            rating[tuple(corner)] += alpha * (empty / (ru - lu + 1) / (rd - ld + 1))
+            rating[tuple(corner)] += beta * (1 / distance(cur_x, cur_y, lu, ru))
+            rating[tuple(corner)] += gamma * distance(enemy_x, enemy_y, lu, ru)
+
+        return max(rating.items(), key=lambda x: x[1])[0]
+
 
     def find_squares(self, Board):
         corners = []
