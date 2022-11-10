@@ -161,6 +161,10 @@ class player:
         # print('corners = ', corners)
         return corners
 
+    def enemy_entered(self, B):
+        lu, ld, rd, ru = self.capturing_square
+        return any(B[i][j] == 2 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)))
+
     def move(self, B, N, cur_x, cur_y):
         enemy_head = self.get_enemy_pos(B)
         enemy_x, enemy_y = enemy_head[0], enemy_head[1]
