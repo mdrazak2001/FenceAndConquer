@@ -68,12 +68,12 @@ class player:
             if B[tx][ty] == 1:
                 corners += 1
         target_conflicts = []
-        print('corners ', corners)
+        # print('corners ', corners)
         if corners == 4:
-            print('visited_cells, ', self.visited_cells)
+            # print('visited_cells, ', self.visited_cells)
             for visited_cell in self.visited_cells:
                 if visited_cell in targets:
-                    print(visited_cell)
+                    # print(visited_cell)
                     target_conflicts = [visited_cell]
                     break
         else:
@@ -121,7 +121,7 @@ class player:
             # print('move cells ', move_cell)
             move_cell.sort(key=lambda corner: (corner[2]))
             # move_cell.sort(key=lambda corner: (corner[1], corner[2]))
-            print('move cells ', move_cell)
+            # print('move cells ', move_cell)
             return move_cell[0][0]
 
         return get_dirs(x, y, target_conflicts)
@@ -136,39 +136,65 @@ class player:
             empty_cells = sum(
                 1 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)) if Board[i][j] == 0)
             tuple_square = tuple(map(tuple, square))
-            rating[tuple_square] += alpha * (empty_cells / ((ru[1] - lu[1] + 1) * (rd[0] - ld[0] + 1)))
+            # rating[tuple_square] += alpha * (empty_cells / ((ru[1] - lu[1] + 1) * (rd[0] - ld[0] + 1)))
             rating[tuple_square] += beta * (1 / distance(cur_x, cur_y, lu[0], lu[1]))
-            rating[tuple_square] += gamma * distance(enemy_x, enemy_y, lu[0], lu[1])
+            # rating[tuple_square] += gamma * distance(enemy_x, enemy_y, lu[0], lu[1])
 
         return max(rating.items(), key=lambda x: x[1])[0]
 
     def find_squares(self, Board):
-        corners = []
-        a, b, c, d = [0, 0], [5, 0], [5, 5], [0, 5]
-        # print(square_completed([a, b, c, d], Board))
-        # and any(Board[i][j] != 0 for i, j in product(range(a_[0], d_[0] + 1), range(lu[1], ru[1] + 1))
-        for i in range(30):
-            try:
-                a_ = a.copy()
-                b_ = b.copy()
-                c_ = c.copy()
-                d_ = d.copy()
+        def get_sized_corners(lu, ru, rd, ld):
+            corners = []
+            for i in range(30):
+                lu_copy = lu.copy()
+                ru_copy = ru.copy()
+                rd_copy = rd.copy()
+                ld_copy = ld.copy()
                 for j in range(30):
-                    if not perimeter_covered([a_, b_, c_, d_], Board):
-                        if [a_.copy(), b_.copy(), c_.copy(), d_.copy()] not in corners:
-                            corners.append([a_.copy(), b_.copy(), c_.copy(), d_.copy()])
-                    a_[0] += 1
-                    b_[0] += 1
-                    c_[0] += 1
-                    d_[0] += 1
-                a[1] += 1
-                b[1] += 1
-                c[1] += 1
-                d[1] += 1
-            except:
-                continue
-        # print('corners = ', corners)
-        return corners
+                    try:
+                        if not perimeter_covered([lu_copy, ru_copy, rd_copy, ld_copy], Board) \
+                                and all(Board[j][i] == 0 for i, j in
+                                        product(range(lu_copy[1], ld_copy[1] + 1), range(lu_copy[0], ru_copy[0] + 1))):
+                            if [lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()] not in corners:
+                                corners.append([lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()])
+                    except:
+                        continue
+                    lu_copy[0] += 1
+                    ru_copy[0] += 1
+                    rd_copy[0] += 1
+                    ld_copy[0] += 1
+                    if ru_copy[0] >= 30:
+                        break
+                lu[1] += 1
+                ru[1] += 1
+                rd[1] += 1
+                ld[1] += 1
+                if lu[1] >= 30:
+                    break
+            return corners
+
+        res_corners = []
+        res_corners.extend(get_sized_corners([0, 0], [5, 0], [5, 5], [0, 5]))  # 6x6
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [5, 0], [5, 4], [0, 4]))  # 6x5
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 5], [0, 5]))  # 5x6
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 4], [0, 4]))  # 5x5
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 3], [0, 3]))  # 5x4
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 4], [0, 4]))  # 4x5
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 3], [0, 3]))  # 4x4
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 2], [0, 2]))  # 4x3
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [2, 0], [2, 3], [0, 3]))  # 3x4
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [2, 0], [2, 2], [0, 2]))  # 3x3
+        print('corners = ', res_corners)
+        return res_corners
 
     def enemy_entered(self, B):
         lu, ld, rd, ru = self.capturing_square
@@ -180,7 +206,8 @@ class player:
         enemy_x, enemy_y = enemy_head[0], enemy_head[1]
         # print(self.initial_corners)
         if self.capturing_square is None or perimeter_covered(self.capturing_square, B):
-            corners = self.rate_squares(self.find_squares(B), cur_x, cur_y, B, enemy_x, enemy_y)
+            squares = self.find_squares(B)
+            corners = self.rate_squares(squares, cur_x, cur_y, B, enemy_x, enemy_y)
             corners = [list(x) for x in corners]
             self.capturing_square = corners
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
