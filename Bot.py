@@ -1,37 +1,250 @@
-"""
-This Python code snippet illustrates how to set up the bot
-"""
-import numpy as np
-import random
-# import other packages here
+from collections import defaultdict
+from itertools import product
 
-"""
-CODE SUBMISSION TEMPLATE
-"""
+import numpy as np
+
+'''
+(1, 0) ->
+(-1, 0) <-
+(0, 1) down
+(0, -1) up
+'''
+
+
+def perimeter_covered(corners, B):
+    def get_cells_between_coords(corner1, corner2, corner3, corner4, Board):
+        cells = []
+        initial_corner = corner1.copy()
+        while corner1 != corner2:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[0] += 1
+        while corner1 != corner3:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[1] += 1
+        while corner1 != corner4:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[0] -= 1
+        while corner1 != initial_corner:
+            cells.append(Board[corner1[0]][corner1[1]])
+            corner1[1] -= 1
+        return cells
+
+    def get_perimeter_cells(Corners, Board):
+        Corners.sort(key=lambda corner: (corner[0], corner[1]))
+        a, b, c, d = Corners[0], Corners[1], Corners[2], Corners[3]
+        cells = get_cells_between_coords(a, c, d, b, Board)
+        return cells
+
+    perimeter_cells = get_perimeter_cells(corners, B)
+    return perimeter_cells.count(0) == 0
+
+
+def distance(x, y, target_x, target_y):
+    return abs(x - target_x) + abs(y - target_y)
+
+
 class player:
     def __init__(self):
-        pass
+        self.enemy_pos = []
+        self.visited_cells = []
+        self.capturing_square = None
+        self.step = 0
+        self.squares_done = False
 
-    def move(self,B,N,cur_x,cur_y): 
-        """
-        This function decides how a bot moves within the grid. That is, the participants can code their strategy in this function.
-        Input:
-            B: the board (list of lists of 30 element each)
-            N: the size of the N x N board (N=30 by default)
-            cur_x: current x location of this bot
-            cur_y: current y location of this bot
-        Return:
-            The function returns the direction (via the variable Direction) in which the bot should move next.
-            Direction: This is a tuple that can hold either of the following values:
-                (0,0)   : don't move
-                (-1,0)  : move left
-                (1,0)   : move right
-                (0,-1)  : move up
-                (0,1)   : move down
-        """
-        
-        # Compute how the bot will move (i.e., how the value of the variable Direction is computed)
-        # Function body - BEGINS
-        
-        # Function body - END
-        return Direction 
+    def get_enemy_pos(self, B):
+        B = np.array(B)
+        for ix, iy in np.ndindex(B.shape):
+            if B[ix, iy] == 2:
+                if [ix, iy] not in self.enemy_pos:
+                    self.enemy_pos.append([ix, iy])
+                    return [ix, iy]
+        return self.enemy_pos[-1]
+
+    def square_capture(self, x, y, targets, B):
+        targets.sort(key=lambda corner: (corner[0], corner[1]))
+        shortest_dist = 100
+        target = targets[0]
+        corners = 0
+        for tx, ty in targets:
+            if B[tx][ty] == 1:
+                corners += 1
+        target_conflicts = []
+        if corners == 4:
+            for visited_cell in self.visited_cells:
+                if visited_cell in targets:
+                    target_conflicts = [visited_cell]
+                    break
+        else:
+            best_targets = []
+            for tx, ty in targets:
+                temp_dist = distance(x, y, tx, ty)
+                if B[tx][ty] != 1 and temp_dist <= shortest_dist:
+                    shortest_dist = temp_dist
+                    target = [tx, ty]
+                    best_targets.append([target, shortest_dist])
+            best_targets = [i for i in best_targets if i[1] == shortest_dist]
+            for best_target in best_targets:
+                target_conflicts.append(best_target[0])
+
+        def get_dirs(cur_x, cur_y, Target_conflicts):
+            all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
+            Shortest_dist = 100
+            move = (0, 1)
+            move_cell = []
+            for TARGET in Target_conflicts:
+                for new_x, new_y in all_dirs:
+                    try:
+                        if (0 <= new_x < 30) and (0 <= new_y < 30):
+                            new_dist = distance(new_x, new_y, TARGET[0], TARGET[1])
+                            if new_dist < Shortest_dist:
+                                Shortest_dist = new_dist
+                                if new_x == cur_x + 1:
+                                    move = (1, 0)
+                                    move_cell.append([move, B[cur_x + 1][cur_y], Shortest_dist])
+                                elif new_x == cur_x - 1:
+                                    move = (-1, 0)
+                                    move_cell.append([move, B[cur_x - 1][cur_y], Shortest_dist])
+                                elif new_y == cur_y + 1:
+                                    move = (0, 1)
+                                    move_cell.append([move, B[cur_x][cur_y + 1], Shortest_dist])
+                                elif new_y == cur_y - 1:
+                                    move = (0, -1)
+                                    move_cell.append([move, B[cur_x][cur_y - 1], Shortest_dist])
+                    except Exception as e:
+                        continue
+            move_cell.sort(key=lambda corner: (corner[2]))
+            return move_cell[0][0]
+
+        return get_dirs(x, y, target_conflicts)
+
+    def rate_squares(self, corners, cur_x, cur_y, Board, enemy_x, enemy_y):
+        rating = defaultdict(int)
+        alpha, beta, gamma = 0, 1, 0
+        for square in corners:
+            lu, ld, rd, ru = square
+            if [cur_x, cur_y] in square:
+                return square
+            empty_cells = sum(
+                1 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)) if Board[i][j] == 0)
+            tuple_square = tuple(map(tuple, square))
+            rating[tuple_square] += alpha * (empty_cells / ((ru[1] - lu[1] + 1) * (rd[0] - ld[0] + 1)))
+            rating[tuple_square] += beta * (1 / distance(cur_x, cur_y, lu[0], lu[1]))
+            rating[tuple_square] += gamma * distance(enemy_x, enemy_y, lu[0], lu[1])
+
+        return max(rating.items(), key=lambda x: x[1])[0]
+
+    def find_squares(self, Board):
+        def get_sized_corners(lu, ru, rd, ld):
+            corners = []
+            for i in range(30):
+                lu_copy = lu.copy()
+                ru_copy = ru.copy()
+                rd_copy = rd.copy()
+                ld_copy = ld.copy()
+                for j in range(30):
+                    try:
+                        if not perimeter_covered([lu_copy, ru_copy, rd_copy, ld_copy], Board) \
+                                and all(Board[j][i] == 0 for i, j in
+                                        product(range(lu_copy[1], ld_copy[1] + 1), range(lu_copy[0], ru_copy[0] + 1))):
+                            if [lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()] not in corners:
+                                corners.append([lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()])
+                    except:
+                        continue
+                    lu_copy[0] += 1
+                    ru_copy[0] += 1
+                    rd_copy[0] += 1
+                    ld_copy[0] += 1
+                    if ru_copy[0] >= 30:
+                        break
+                lu[1] += 1
+                ru[1] += 1
+                rd[1] += 1
+                ld[1] += 1
+                if lu[1] >= 30:
+                    break
+            return corners
+
+        res_corners = []
+        res_corners.extend(get_sized_corners([0, 0], [5, 0], [5, 5], [0, 5]))  # 6x6
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [5, 0], [5, 4], [0, 4]))  # 6x5
+            res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 5], [0, 5]))  # 5x6
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 4], [0, 4]))  # 5x5
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 3], [0, 3]))  # 5x4
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 4], [0, 4]))  # 4x5
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 3], [0, 3]))  # 4x4
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 2], [0, 2]))  # 4x3
+            res_corners.extend(get_sized_corners([0, 0], [2, 0], [2, 3], [0, 3]))  # 3x4
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [2, 0], [2, 2], [0, 2]))  # 3x3
+        return res_corners
+
+    def enemy_entered(self, B):
+        lu, ld, rd, ru = self.capturing_square
+        return any(B[j][i] == 2 for i, j in product(range(lu[1], ld[1] + 1), range(lu[0], ru[0] + 1)))
+
+    def move(self, B, N, cur_x, cur_y):
+        self.step += 1
+        self.visited_cells.append([cur_x, cur_y])
+        enemy_head = self.get_enemy_pos(B)
+        enemy_x, enemy_y = enemy_head[0], enemy_head[1]
+        if not self.squares_done:
+            squares = self.find_squares(B)
+            if not squares:
+                self.squares_done = True
+        if self.squares_done:
+            move = self.capture_cells(B, cur_x, cur_y)
+        elif self.capturing_square is None or perimeter_covered(self.capturing_square, B):
+
+            corners = self.rate_squares(squares, cur_x, cur_y, B, enemy_x, enemy_y)
+            corners = [list(x) for x in corners]
+            self.capturing_square = corners
+            move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
+        else:
+            move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
+        return move
+
+
+    def capture_cells(self, B, cur_x, cur_y):
+        def get_dirs(cur_x, cur_y, Target_conflicts):
+            all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
+            Shortest_dist = 100
+            move = (0, 1)
+            move_cell = []
+            for TARGET in Target_conflicts:
+                for new_x, new_y in all_dirs:
+                    try:
+                        if (0 <= new_x < 30) and (0 <= new_y < 30):
+                            new_dist = distance(new_x, new_y, TARGET[0], TARGET[1])
+                            if new_dist < Shortest_dist:
+                                Shortest_dist = new_dist
+                                if new_x == cur_x + 1:
+                                    move = (1, 0)
+                                    move_cell.append([move, B[cur_x + 1][cur_y], Shortest_dist])
+                                elif new_x == cur_x - 1:
+                                    move = (-1, 0)
+                                    move_cell.append([move, B[cur_x - 1][cur_y], Shortest_dist])
+                                elif new_y == cur_y + 1:
+                                    move = (0, 1)
+                                    move_cell.append([move, B[cur_x][cur_y + 1], Shortest_dist])
+                                elif new_y == cur_y - 1:
+                                    move = (0, -1)
+                                    move_cell.append([move, B[cur_x][cur_y - 1], Shortest_dist])
+                    except Exception as e:
+                        print(e)
+                        continue
+            # print('move cells ', move_cell)
+            move_cell.sort(key=lambda corner: (corner[2]))
+            # move_cell.sort(key=lambda corner: (corner[1], corner[2]))
+            # print('move cells ', move_cell)
+            return move_cell[0][0]
+
+        cells = [[y, x] for x, y in product(range(30), range(30)) if B[y][x] == 0]
+        if not cells:
+            return 0, 0
+        closest_cell = min(cells, key=lambda x: distance(cur_x, cur_y, x[0], x[1]))
+        return get_dirs(cur_x, cur_y, [closest_cell])
