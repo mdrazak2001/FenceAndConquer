@@ -46,8 +46,7 @@ def distance(x, y, target_x, target_y):
 class player:
     def __init__(self):
         self.enemy_pos = []
-        self.visited_cells = set()
-        self.initial_corners = dict()
+        self.visited_cells = []
         self.capturing_square = None
 
     def get_enemy_pos(self, B):
@@ -60,6 +59,7 @@ class player:
         return self.enemy_pos[-1]
 
     def square_capture(self, x, y, targets, B):
+        print("targets ", targets)
         targets.sort(key=lambda corner: (corner[0], corner[1]))
         shortest_dist = 100
         target = targets[0]
@@ -67,13 +67,15 @@ class player:
         for tx, ty in targets:
             if B[tx][ty] == 1:
                 corners += 1
-        if corners == 1 and [x, y] in targets:
-            if str(targets) not in self.initial_corners:
-                self.initial_corners[str(targets)] = [x, y]
         target_conflicts = []
+        print('corners ', corners)
         if corners == 4:
-            target = self.initial_corners[str(targets)]
-            target_conflicts = [target]
+            print('visited_cells, ', self.visited_cells)
+            for visited_cell in self.visited_cells:
+                if visited_cell in targets:
+                    print(visited_cell)
+                    target_conflicts = [visited_cell]
+                    break
         else:
             best_targets = []
             for tx, ty in targets:
@@ -86,6 +88,8 @@ class player:
             for best_target in best_targets:
                 target_conflicts.append(best_target[0])
             # print(shortest_dist, best_targets)
+
+        # print('target_conflicts ', target_conflicts)
 
         def get_dirs(cur_x, cur_y, Target_conflicts):
             all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
@@ -114,7 +118,10 @@ class player:
                     except Exception as e:
                         print(e)
                         continue
-            move_cell.sort(key=lambda corner: (corner[1], corner[2]))
+            # print('move cells ', move_cell)
+            move_cell.sort(key=lambda corner: (corner[2]))
+            # move_cell.sort(key=lambda corner: (corner[1], corner[2]))
+            print('move cells ', move_cell)
             return move_cell[0][0]
 
         return get_dirs(x, y, target_conflicts)
@@ -126,7 +133,8 @@ class player:
             lu, ld, rd, ru = square
             if [cur_x, cur_y] in square:
                 return square
-            empty_cells = sum(1 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)) if Board[i][j] == 0)
+            empty_cells = sum(
+                1 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)) if Board[i][j] == 0)
             tuple_square = tuple(map(tuple, square))
             rating[tuple_square] += alpha * (empty_cells / ((ru[1] - lu[1] + 1) * (rd[0] - ld[0] + 1)))
             rating[tuple_square] += beta * (1 / distance(cur_x, cur_y, lu[0], lu[1]))
@@ -134,11 +142,11 @@ class player:
 
         return max(rating.items(), key=lambda x: x[1])[0]
 
-
     def find_squares(self, Board):
         corners = []
         a, b, c, d = [0, 0], [5, 0], [5, 5], [0, 5]
         # print(square_completed([a, b, c, d], Board))
+        # and any(Board[i][j] != 0 for i, j in product(range(a_[0], d_[0] + 1), range(lu[1], ru[1] + 1))
         for i in range(30):
             try:
                 a_ = a.copy()
@@ -147,7 +155,8 @@ class player:
                 d_ = d.copy()
                 for j in range(30):
                     if not perimeter_covered([a_, b_, c_, d_], Board):
-                        corners.append([a_.copy(), b_.copy(), c_.copy(), d_.copy()])
+                        if [a_.copy(), b_.copy(), c_.copy(), d_.copy()] not in corners:
+                            corners.append([a_.copy(), b_.copy(), c_.copy(), d_.copy()])
                     a_[0] += 1
                     b_[0] += 1
                     c_[0] += 1
@@ -166,22 +175,23 @@ class player:
         return any(B[i][j] == 2 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)))
 
     def move(self, B, N, cur_x, cur_y):
+        self.visited_cells.append([cur_x, cur_y])
         enemy_head = self.get_enemy_pos(B)
         enemy_x, enemy_y = enemy_head[0], enemy_head[1]
-        if self.capturing_square is None or perimeter_covered(self.capturing_square, B) or self.enemy_entered(B):
+        # print(self.initial_corners)
+        if self.capturing_square is None or perimeter_covered(self.capturing_square, B):
             corners = self.rate_squares(self.find_squares(B), cur_x, cur_y, B, enemy_x, enemy_y)
             corners = [list(x) for x in corners]
             self.capturing_square = corners
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
-            return move
         else:
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
-            return move
-        print(corners)
+        print(self.capturing_square)
         # print(self.find_squares(B)[0])
-        move = self.square_capture(cur_x, cur_y, corners, B)
-        return move
+        # move = self.square_capture(cur_x, cur_y, corners, B)
 
+        return move
+        # move = 1, 0
         # if not perimeter_covered([[0, 0], [5, 0], [5, 5], [0, 5]], B):
         #     move = self.square_capture(cur_x, cur_y, [[0, 0], [5, 0], [5, 5], [0, 5]], B)
         # elif not perimeter_covered([[6, 0], [11, 0], [11, 5], [6, 5]], B):
