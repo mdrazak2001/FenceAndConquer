@@ -95,7 +95,7 @@ def main():
     drawGrid()
     while True and count<MAXSTEPS:
 
-        sleep(0.1)  # Participants may comment this line to speed up the computation. 
+        # sleep(0.1)  # Participants may comment this line to speed up the computation.
                     # However, commenting will also speed up the visualization. This 
                     # can make it difficult to understand and analyze the moves.
 

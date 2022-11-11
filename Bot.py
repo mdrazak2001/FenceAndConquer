@@ -198,14 +198,18 @@ class player:
                 self.squares_done = True
         if self.squares_done:
             move = self.capture_cells(B, cur_x, cur_y)
-        elif self.capturing_square is None or perimeter_covered(self.capturing_square, B):
-
+        elif self.capturing_square is None or perimeter_covered(self.capturing_square, B) or self.enemy_entered(B):
+            squares = self.find_squares(B)
             corners = self.rate_squares(squares, cur_x, cur_y, B, enemy_x, enemy_y)
             corners = [list(x) for x in corners]
             self.capturing_square = corners
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
         else:
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
+        print(self.capturing_square)
+        # print(self.find_squares(B)[0])
+        # move = self.square_capture(cur_x, cur_y, corners, B)
+
         return move
 
 
