@@ -60,6 +60,45 @@ class player:
                     return [ix, iy]
         return self.enemy_pos[-1]
 
+    def capture_cells(self, B, cur_x, cur_y):
+        def get_dirs(cur_x, cur_y, Target_conflicts):
+            all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
+            Shortest_dist = 100
+            move = (0, 1)
+            move_cell = []
+            for TARGET in Target_conflicts:
+                for new_x, new_y in all_dirs:
+                    try:
+                        if (0 <= new_x < 30) and (0 <= new_y < 30):
+                            new_dist = distance(new_x, new_y, TARGET[0], TARGET[1])
+                            if new_dist < Shortest_dist:
+                                Shortest_dist = new_dist
+                                if new_x == cur_x + 1:
+                                    move = (1, 0)
+                                    move_cell.append([move, B[cur_x + 1][cur_y], Shortest_dist])
+                                elif new_x == cur_x - 1:
+                                    move = (-1, 0)
+                                    move_cell.append([move, B[cur_x - 1][cur_y], Shortest_dist])
+                                elif new_y == cur_y + 1:
+                                    move = (0, 1)
+                                    move_cell.append([move, B[cur_x][cur_y + 1], Shortest_dist])
+                                elif new_y == cur_y - 1:
+                                    move = (0, -1)
+                                    move_cell.append([move, B[cur_x][cur_y - 1], Shortest_dist])
+                    except Exception as e:
+                        print(e)
+                        continue
+            # print('move cells ', move_cell)
+            move_cell.sort(key=lambda corner: (corner[2]))
+            # move_cell.sort(key=lambda corner: (corner[1], corner[2]))
+            # print('move cells ', move_cell)
+            return move_cell[0][0]
+
+        cells = [[y, x] for x, y in product(range(30), range(30)) if B[y][x] == 0]
+        if not cells:
+            return 0, 0
+        closest_cell = min(cells, key=lambda x: distance(cur_x, cur_y, x[0], x[1]))
+        return get_dirs(cur_x, cur_y, [closest_cell])
     def square_capture(self, x, y, targets, B):
         targets.sort(key=lambda corner: (corner[0], corner[1]))
         shortest_dist = 100
@@ -206,49 +245,7 @@ class player:
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
         else:
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
-        print(self.capturing_square)
-        # print(self.find_squares(B)[0])
-        # move = self.square_capture(cur_x, cur_y, corners, B)
-
         return move
 
 
-    def capture_cells(self, B, cur_x, cur_y):
-        def get_dirs(cur_x, cur_y, Target_conflicts):
-            all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
-            Shortest_dist = 100
-            move = (0, 1)
-            move_cell = []
-            for TARGET in Target_conflicts:
-                for new_x, new_y in all_dirs:
-                    try:
-                        if (0 <= new_x < 30) and (0 <= new_y < 30):
-                            new_dist = distance(new_x, new_y, TARGET[0], TARGET[1])
-                            if new_dist < Shortest_dist:
-                                Shortest_dist = new_dist
-                                if new_x == cur_x + 1:
-                                    move = (1, 0)
-                                    move_cell.append([move, B[cur_x + 1][cur_y], Shortest_dist])
-                                elif new_x == cur_x - 1:
-                                    move = (-1, 0)
-                                    move_cell.append([move, B[cur_x - 1][cur_y], Shortest_dist])
-                                elif new_y == cur_y + 1:
-                                    move = (0, 1)
-                                    move_cell.append([move, B[cur_x][cur_y + 1], Shortest_dist])
-                                elif new_y == cur_y - 1:
-                                    move = (0, -1)
-                                    move_cell.append([move, B[cur_x][cur_y - 1], Shortest_dist])
-                    except Exception as e:
-                        print(e)
-                        continue
-            # print('move cells ', move_cell)
-            move_cell.sort(key=lambda corner: (corner[2]))
-            # move_cell.sort(key=lambda corner: (corner[1], corner[2]))
-            # print('move cells ', move_cell)
-            return move_cell[0][0]
 
-        cells = [[y, x] for x, y in product(range(30), range(30)) if B[y][x] == 0]
-        if not cells:
-            return 0, 0
-        closest_cell = min(cells, key=lambda x: distance(cur_x, cur_y, x[0], x[1]))
-        return get_dirs(cur_x, cur_y, [closest_cell])
