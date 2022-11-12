@@ -173,19 +173,15 @@ class player:
 
         return get_dirs(x, y, target_conflicts)
 
-    def rate_squares(self, corners, cur_x, cur_y, Board, enemy_x, enemy_y):
+    def rate_squares(self, corners, cur_x, cur_y, Board):
         rating = defaultdict(int)
-        alpha, beta, gamma = 0, 1, 0
+        alpha = 1
         for square in corners:
             lu, ld, rd, ru = square
             if [cur_x, cur_y] in square:
                 return square
-            empty_cells = sum(
-                1 for i, j in product(range(lu[0], ld[0] + 1), range(lu[1], ru[1] + 1)) if Board[i][j] == 0)
             tuple_square = tuple(map(tuple, square))
-            rating[tuple_square] += alpha * (empty_cells / ((ru[1] - lu[1] + 1) * (rd[0] - ld[0] + 1)))
-            rating[tuple_square] += beta * (1 / distance(cur_x, cur_y, lu[0], lu[1]))
-            rating[tuple_square] += gamma * distance(enemy_x, enemy_y, lu[0], lu[1])
+            rating[tuple_square] += alpha * (1 / distance(cur_x, cur_y, lu[0], lu[1]))
 
         return max(rating.items(), key=lambda x: x[1])[0]
 
@@ -199,9 +195,7 @@ class player:
                 ld_copy = ld.copy()
                 for j in range(30):
                     try:
-                        if not perimeter_covered([lu_copy, ru_copy, rd_copy, ld_copy], Board) \
-                                and all(Board[j][i] == 0 for i, j in
-                                        product(range(lu_copy[1], ld_copy[1] + 1), range(lu_copy[0], ru_copy[0] + 1))):
+                        if all(Board[j][i] == 0 for i, j in product(range(lu_copy[1], ld_copy[1] + 1), range(lu_copy[0], ru_copy[0] + 1))):
                             if [lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()] not in corners:
                                 corners.append([lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()])
                     except:
@@ -232,11 +226,6 @@ class player:
             res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 4], [0, 4]))  # 4x5
         if len(res_corners) == 0:
             res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 3], [0, 3]))  # 4x4
-        if len(res_corners) == 0:
-            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 2], [0, 2]))  # 4x3
-            res_corners.extend(get_sized_corners([0, 0], [2, 0], [2, 3], [0, 3]))  # 3x4
-        if len(res_corners) == 0:
-            res_corners.extend(get_sized_corners([0, 0], [2, 0], [2, 2], [0, 2]))  # 3x3
         return res_corners
 
     def enemy_entered(self, B):
@@ -246,8 +235,6 @@ class player:
     def move(self, B, N, cur_x, cur_y):
         self.step += 1
         self.visited_cells.append([cur_x, cur_y])
-        enemy_head = self.get_enemy_pos(B)
-        enemy_x, enemy_y = enemy_head[0], enemy_head[1]
         if not self.squares_done:
             squares = self.find_squares(B)
             if not squares:
@@ -256,7 +243,7 @@ class player:
             move = self.capture_cells(B, cur_x, cur_y)
         elif self.capturing_square is None or perimeter_covered(self.capturing_square, B) or self.enemy_entered(B):
             squares = self.find_squares(B)
-            corners = self.rate_squares(squares, cur_x, cur_y, B, enemy_x, enemy_y)
+            corners = self.rate_squares(squares, cur_x, cur_y, B)
             corners = [list(x) for x in corners]
             self.capturing_square = corners
             move = self.square_capture(cur_x, cur_y, self.capturing_square, B)
