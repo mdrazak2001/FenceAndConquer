@@ -54,15 +54,6 @@ class player:
         self.step = 0
         self.squares_done = False
 
-    def get_enemy_pos(self, B):
-        B = np.array(B)
-        for ix, iy in np.ndindex(B.shape):
-            if B[ix, iy] == 2:
-                if [ix, iy] not in self.enemy_pos:
-                    self.enemy_pos.append([ix, iy])
-                    return [ix, iy]
-        return self.enemy_pos[-1]
-
     def capture_cells(self, B, cur_x, cur_y):
         def get_dirs(cur_x, cur_y, Target_conflicts):
             all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]

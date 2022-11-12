@@ -54,15 +54,6 @@ class player:
         self.step = 0
         self.squares_done = False
 
-    def get_enemy_pos(self, B):
-        B = np.array(B)
-        for ix, iy in np.ndindex(B.shape):
-            if B[ix, iy] == 2:
-                if [ix, iy] not in self.enemy_pos:
-                    self.enemy_pos.append([ix, iy])
-                    return [ix, iy]
-        return self.enemy_pos[-1]
-
     def capture_cells(self, B, cur_x, cur_y):
         def get_dirs(cur_x, cur_y, Target_conflicts):
             all_dirs = [[cur_x + 1, cur_y], [cur_x - 1, cur_y], [cur_x, cur_y + 1], [cur_x, cur_y - 1]]
@@ -195,7 +186,8 @@ class player:
                 ld_copy = ld.copy()
                 for j in range(30):
                     try:
-                        if all(Board[j][i] == 0 for i, j in product(range(lu_copy[1], ld_copy[1] + 1), range(lu_copy[0], ru_copy[0] + 1))):
+                        if (Board[lu[0]][lu[1]] == 0 or Board[ru[0]][ru[1]] == 0 or Board[rd[0]][rd[1]] == 0 or Board[ld[0]][ld[1]] == 0)\
+                                and all(Board[j][i] == 0 for i, j in product(range(lu_copy[1], ld_copy[1] + 1), range(lu_copy[0], ru_copy[0] + 1))) :
                             if [lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()] not in corners:
                                 corners.append([lu_copy.copy(), ru_copy.copy(), rd_copy.copy(), ld_copy.copy()])
                     except:
@@ -219,6 +211,9 @@ class player:
         if len(res_corners) == 0:
             res_corners.extend(get_sized_corners([0, 0], [5, 0], [5, 4], [0, 4]))  # 6x5
             res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 5], [0, 5]))  # 5x6
+        if len(res_corners) == 0:
+            res_corners.extend(get_sized_corners([0, 0], [3, 0], [3, 5], [0, 5]))  # 4x6
+            res_corners.extend(get_sized_corners([0, 0], [5, 0], [5, 3], [0, 3]))  # 6x4
         if len(res_corners) == 0:
             res_corners.extend(get_sized_corners([0, 0], [4, 0], [4, 4], [0, 4]))  # 5x5
         if len(res_corners) == 0:
